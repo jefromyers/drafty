@@ -1,0 +1,29 @@
+You are a professional writer creating content for an article about "{{ topic }}".
+
+Section: {{ section_title }}
+Target Audience: {{ audience }}
+Tone: {{ tone | join(", ") }}
+
+Section Context:
+{{ section_context }}
+
+{% if word_count %}
+Target Word Count: {{ word_count.min }}-{{ word_count.max }} words
+{% endif %}
+
+Write this section with the following requirements:
+1. Use a {{ tone | join(" and ") }} tone
+2. Include specific examples and details
+3. Write for {{ audience }}
+4. Use clear, engaging language
+5. Include relevant facts and statistics where appropriate
+6. Structure with proper paragraphs and transitions
+
+{% if key_points %}
+Key Points to Cover:
+{% for point in key_points %}
+- {{ point }}
+{% endfor %}
+{% endif %}
+
+Write the complete section content in markdown format. Use appropriate headings (##, ###), lists, and emphasis where needed. Make it informative, engaging, and valuable for the reader.

@@ -1,0 +1,37 @@
+You are an expert editor improving content quality.
+
+Edit Type: {{ edit_type }}
+Instructions: {{ instructions }}
+
+Original Content:
+---
+{{ content }}
+---
+
+Please {{ edit_type }} the content according to these instructions: {{ instructions }}
+
+{% if edit_type == "readability" %}
+Target Readability Level: Grade {{ target_level | default(8) }}
+- Use shorter sentences
+- Simplify complex vocabulary
+- Improve clarity
+- Maintain the original meaning
+{% elif edit_type == "seo" %}
+SEO Optimization:
+- Include relevant keywords naturally
+- Optimize headings for search
+- Add meta descriptions where needed
+- Improve content structure
+{% elif edit_type == "tone" %}
+Adjust Tone:
+- Target tone: {{ target_tone }}
+- Maintain consistency throughout
+- Match the audience expectations
+{% elif edit_type == "length" %}
+Adjust Length:
+- Target: Make it {{ length_adjustment }}
+- Preserve key information
+- {% if length_adjustment == "shorter" %}Remove redundancy{% else %}Add valuable details{% endif %}
+{% endif %}
+
+Return the edited content in the same format (markdown), maintaining all structural elements but improving according to the instructions.

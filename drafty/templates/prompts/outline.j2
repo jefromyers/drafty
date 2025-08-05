@@ -1,0 +1,49 @@
+You are an expert content strategist creating an outline for an article about "{{ topic }}".
+
+Target Audience: {{ audience }}
+Style: {{ style }}
+{% if sections %}Required Sections: {{ sections }}{% endif %}
+
+{% if research %}
+Research Context:
+{{ research | truncate_words(200) }}
+{% endif %}
+
+Create a comprehensive outline that:
+1. Follows the {{ style }} structure
+2. Appeals to {{ audience }}
+3. Covers all essential aspects of {{ topic }}
+4. Has a logical flow and progression
+5. {% if sections %}Contains approximately {{ sections }} main sections{% else %}Is appropriately detailed{% endif %}
+
+The outline should include:
+- A compelling title
+- Main sections with descriptive headings
+- 2-3 key points for each section
+- Suggested word count for each section
+- Any special elements (tables, lists, examples, etc.)
+
+Respond in JSON format:
+{
+  "title": "Article Title",
+  "meta_description": "150-character description",
+  "introduction": {
+    "heading": "Introduction",
+    "key_points": ["point1", "point2"],
+    "word_count": 150
+  },
+  "sections": [
+    {
+      "heading": "Section Title",
+      "key_points": ["point1", "point2", "point3"],
+      "word_count": 300,
+      "special_elements": ["table", "example"]
+    }
+  ],
+  "conclusion": {
+    "heading": "Conclusion",
+    "key_points": ["summary", "call_to_action"],
+    "word_count": 150
+  },
+  "total_word_count": 1500
+}
