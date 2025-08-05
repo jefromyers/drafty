@@ -9,6 +9,7 @@ from openai import AsyncOpenAI
 from pydantic import BaseModel
 
 from drafty.providers.base import LLMMessage, LLMProvider, LLMProviderFactory, LLMResponse
+from drafty.core.exceptions import ProviderError, RateLimitError, AuthenticationError
 
 
 class OpenAIProvider(LLMProvider):
@@ -171,10 +172,14 @@ class OpenAIProvider(LLMProvider):
             
             return result
 
+        except openai.RateLimitError as e:
+            raise RateLimitError(f"OpenAI rate limit exceeded: {e}", status_code=429)
+        except openai.AuthenticationError as e:
+            raise AuthenticationError(f"OpenAI authentication failed: {e}", status_code=401)
         except openai.APIError as e:
-            raise Exception(f"OpenAI API error: {e}")
+            raise ProviderError(f"OpenAI API error: {e}")
         except Exception as e:
-            raise Exception(f"Error generating response: {e}")
+            raise ProviderError(f"Error generating response: {e}")
 
     async def generate_stream(
         self,

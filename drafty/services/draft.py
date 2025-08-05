@@ -114,7 +114,12 @@ class DraftService:
         # Get provider
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
-        provider = LLMProviderFactory.create(provider_name, provider_config.model_dump())
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
+        provider = LLMProviderFactory.create(provider_name, provider_config)
         
         # Prepare research context
         research_context = self._prepare_research_context(research_data)
@@ -221,7 +226,27 @@ Outline for this section:
         
         response = await provider.generate(messages)
         
-        return response.content
+        # Parse JSON response if needed
+        content = response.content
+        if content.startswith('{') and content.endswith('}'):
+            try:
+                import json
+                data = json.loads(content)
+                # Extract the actual content from JSON response
+                if 'section' in data and 'content' in data['section']:
+                    content = data['section']['content']
+                elif 'content' in data:
+                    content = data['content']
+            except json.JSONDecodeError:
+                pass  # Use raw content if not valid JSON
+        
+        # Remove duplicate heading if it exists
+        if content.startswith(f"## {section.heading}\n"):
+            content = content[len(f"## {section.heading}\n"):].lstrip()
+        elif content.startswith(f"### {section.heading}\n"):
+            content = content[len(f"### {section.heading}\n"):].lstrip()
+        
+        return content
     
     def _prepare_research_context(self, research_data: Optional[Dict[str, Any]]) -> str:
         """Prepare research context for draft generation."""
@@ -281,18 +306,25 @@ Outline for this section:
         # Get provider
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
-        provider = LLMProviderFactory.create(provider_name, provider_config.model_dump())
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
+        provider = LLMProviderFactory.create(provider_name, provider_config)
         
         # Build regeneration prompt
+        current_content_section = ''
+        if current_content:
+            current_content_section = f'Current Content:\n{current_content}\n\n'
+        
         prompt = f"""Please regenerate the following section with these instructions: {instructions}
 
 Section: {section_heading}
 Key Points: {', '.join(outline_section.key_points)}
 Target Word Count: {outline_section.word_count}
 
-{'Current Content:\n' + current_content if current_content else ''}
-
-Write an improved version following the instructions."""
+{current_content_section}Write an improved version following the instructions."""
         
         messages = [
             LLMMessage(

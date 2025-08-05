@@ -4,14 +4,23 @@ A powerful, modular CLI tool for AI-assisted article drafting with support for m
 
 ## Features
 
-- 🤖 **Multiple LLM Providers**: OpenAI (with structured outputs), Google Gemini, Anthropic Claude
+- 🤖 **Multiple LLM Providers**: OpenAI (with structured outputs & JSON mode), Google Gemini, Anthropic Claude (coming soon)
 - 🔍 **Smart Web Scraping**: Using trafilatura and selectolax for fast, accurate content extraction
 - 📈 **Real SERP Data**: Data4SEO integration for Google search results, People Also Ask, and related searches
 - 🚀 **JavaScript Rendering**: Browserless integration for dynamic content
-- 📝 **Flexible Workflows**: Research → Outline → Draft → Edit → Link → Export
-- 🧠 **NLP Integration**: spaCy for entity recognition and text analysis
-- 📊 **Structured Outputs**: JSON mode and schema validation for reliable responses
+- 📝 **Complete Workflow**: Research → Outline → Draft → Edit → Export
+- ✏️ **Advanced Editing**: Multi-mode content refinement (readability, SEO, tone, length, clarity)
+- 📊 **Content Analysis**: Readability metrics, SEO analysis, and improvement suggestions
 - 🎨 **Template System**: Jinja2-based templates for customizable outputs
+- 📁 **Version Control**: Automatic draft versioning and workspace management
+- 🔧 **Extensible Config**: Pydantic v2 schemas with extra fields support
+
+## Requirements
+
+- Python 3.11+
+- API keys for at least one LLM provider (OpenAI, Gemini, or Anthropic)
+- Optional: Data4SEO account for real SERP data
+- Optional: Docker for JavaScript rendering support
 
 ## Installation
 
@@ -39,12 +48,18 @@ Create a `.env` file:
 ```bash
 # LLM Providers
 OPENAI_API_KEY=your_openai_key
-GEMINI_API_KEY=your_gemini_key
+GEMINI_API_KEY=your_gemini_key  # or GOOGLE_API_KEY
 ANTHROPIC_API_KEY=your_anthropic_key
 
-# Data4SEO (for real SERP data)
+# Optional: Custom model selection
+GEMINI_MODEL=gemini-2.0-flash-exp  # Default Gemini model
+
+# Optional: Data4SEO (for real SERP data)
 DATA4SEO_USERNAME=your_data4seo_username
 DATA4SEO_PASSWORD=your_data4seo_password
+
+# Optional: Browserless (for JavaScript rendering)
+BROWSERLESS_URL=http://localhost:3000
 ```
 
 ### 2. Create a new article
@@ -57,26 +72,29 @@ drafty new my-article --topic "AI Writing Tools" --audience "Content creators"
 cd my-article/
 ```
 
-### 3. Research and generate content
+### 3. Complete workflow
 
 ```bash
+# Check configuration status
+drafty config status
+
 # Gather research sources
 drafty research --max-sources 10
 
-# Generate outline
-drafty outline --style guide
+# Generate outline (3-5 sections by default)
+drafty outline --sections 5 --style guide
 
 # Create draft
 drafty draft --model gpt-4o-mini
 
-# Refine and optimize
-drafty edit --readability 8 --seo
-
-# Add smart links
-drafty link --suggest --use-ner
+# Edit and refine content
+drafty edit all --analyze  # Analyze and improve all aspects
+drafty edit readability --target-grade 10  # Adjust readability
+drafty edit seo --keywords "AI writing, content automation"
+drafty edit length --target-words 2000  # Adjust word count
 
 # Export final version
-drafty export --format markdown html
+drafty export --format markdown html json
 ```
 
 ## Project Structure
@@ -102,13 +120,24 @@ Articles are configured via `article.json`:
 {
   "meta": {
     "slug": "my-article",
-    "status": "draft"
+    "status": "draft",
+    "tags": ["AI", "automation"],
+    "extra": {
+      "author": "Your Name",
+      "client": "Optional Client Name"
+    }
   },
   "content": {
     "topic": "AI Writing Tools",
     "audience": "Content creators",
-    "tone": ["professional", "approachable"],
-    "word_count": {"min": 1500, "max": 2500}
+    "tone": "professional",
+    "word_count": {
+      "min": 1500,
+      "max": 2500,
+      "target": 2000
+    },
+    "keywords": ["AI writing", "content automation", "GPT"],
+    "style": "guide"
   },
   "llm": {
     "providers": {
@@ -117,10 +146,15 @@ Articles are configured via `article.json`:
         "json_mode": true
       },
       "gemini": {
-        "model": "gemini-1.5-flash"
+        "model": "gemini-2.0-flash-exp"
       }
     },
     "default": "openai"
+  },
+  "research": {
+    "max_sources": 10,
+    "use_serp": true,
+    "seed_queries": ["AI writing tools 2024", "content automation best practices"]
   }
 }
 ```
@@ -156,17 +190,23 @@ provider = OpenAIProvider({"model": "gpt-4o-mini"})
 result = await provider.generate_with_schema(messages, Article)
 ```
 
-### NLP Analysis
+### Content Analysis & Editing
 
 ```bash
-# Analyze content with spaCy
-drafty nlp analyze --file drafts/current.md
+# Analyze content quality
+drafty edit --analyze  # Shows readability, SEO, and improvement suggestions
 
-# Extract entities
-drafty nlp entities
+# Batch editing with multiple improvements
+drafty edit all  # Apply clarity, readability, grammar, and style fixes
 
-# Check readability
-drafty nlp readability
+# Specific editing modes
+drafty edit readability --target-grade 8  # Target 8th grade reading level
+drafty edit seo --keywords "keyword1,keyword2"  # SEO optimization
+drafty edit tone --tone casual  # Adjust tone (professional, casual, friendly, etc.)
+drafty edit length --target-words 1500  # Expand or condense to target length
+drafty edit clarity  # Improve clarity and remove ambiguity
+drafty edit grammar  # Fix grammar and punctuation
+drafty edit style  # Improve consistency and professional presentation
 ```
 
 ## CLI Commands
@@ -174,23 +214,27 @@ drafty nlp readability
 | Command | Description |
 |---------|-------------|
 | `drafty new <slug>` | Create new article workspace |
+| `drafty config status` | Check API keys and configuration |
 | `drafty research` | Gather and analyze sources |
 | `drafty outline` | Generate article structure |
 | `drafty draft` | Create content sections |
-| `drafty edit` | Refine and optimize |
-| `drafty link` | Manage internal/external links |
-| `drafty export` | Generate final outputs |
-| `drafty chat` | Interactive refinement mode |
-| `drafty nlp` | Text analysis tools |
-| `drafty config` | View/edit configuration |
+| `drafty edit <type>` | Edit and refine content (see editing modes above) |
+| `drafty export` | Generate final outputs (markdown, HTML, JSON) |
+| `drafty status` | View workspace status and draft versions |
 
 ## Development
 
 ```bash
-# Install dev dependencies
+# Install in development mode
+pip install -e .
+
+# Run workflow test
+python test_workflow.py
+
+# Install dev dependencies (when available)
 pip install -e ".[dev]"
 
-# Run tests
+# Run tests (when available)
 pytest
 
 # Format code
@@ -222,7 +266,20 @@ services:
 - **File-Based**: All data stored in workspace for version control
 - **Extensible**: Plugin system for custom processors
 - **Async First**: Built on httpx for concurrent operations
-- **Type Safe**: Pydantic models throughout
+- **Type Safe**: Pydantic v2 models throughout
+
+## Key Technologies
+
+- **CLI Framework**: Click for command-line interface
+- **LLM Integration**: OpenAI, Google Generative AI SDKs
+- **HTTP Client**: httpx for async requests
+- **Web Scraping**: trafilatura + selectolax for content extraction
+- **Data Models**: Pydantic v2 for validation and configuration
+- **Templates**: Jinja2 for prompt and output templates
+- **Text Analysis**: textstat for readability metrics
+- **Markdown Processing**: python-markdown for format conversion
+- **Environment Management**: python-dotenv for configuration
+- **Output Formatting**: Rich for beautiful terminal output
 
 ## Contributing
 
@@ -236,11 +293,28 @@ services:
 
 MIT
 
-## Roadmap
+## Current Status
 
+### ✅ Completed Features
+- Multiple LLM provider support (OpenAI, Gemini)
+- Complete article generation pipeline
+- Advanced editing and refinement tools
+- Content analysis and SEO optimization
+- Multi-format export (Markdown, HTML, JSON)
+- Automatic draft versioning
+- Configuration management with .env support
+
+### 🚧 In Progress
+- Anthropic Claude integration
+- spaCy NLP integration for entity recognition
+- Link management with NER
+
+### 📋 Roadmap
 - [ ] Ollama integration for local models
 - [ ] Advanced fact-checking
 - [ ] Multi-language support
 - [ ] Web UI for review
 - [ ] GitHub Actions integration
 - [ ] Plugin marketplace
+- [ ] Real-time collaboration features
+- [ ] Content scheduling and publishing
