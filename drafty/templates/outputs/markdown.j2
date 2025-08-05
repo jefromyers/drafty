@@ -1,0 +1,38 @@
+---
+title: {{ title }}
+author: {{ author | default("Drafty AI") }}
+date: {{ date }}
+topic: {{ topic }}
+audience: {{ audience }}
+{% if keywords %}
+keywords: {{ keywords | join(", ") }}
+{% endif %}
+{% if meta_description %}
+description: {{ meta_description }}
+{% endif %}
+---
+
+# {{ title }}
+
+{% if toc %}
+## Table of Contents
+
+{% for section in sections %}
+{{ loop.index }}. [{{ section.heading }}](#{{ section.heading | lower | replace(" ", "-") }})
+{% endfor %}
+
+---
+
+{% endif %}
+
+{{ content }}
+
+{% if footer %}
+---
+
+{{ footer }}
+{% endif %}
+
+{% if metadata.word_count %}
+*Word count: {{ metadata.word_count }}*
+{% endif %}

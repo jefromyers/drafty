@@ -198,11 +198,19 @@ def nlp(ctx: DraftyContext, action: str, file: Optional[str]):
 @cli.command()
 @click.option("--all", is_flag=True, help="Show all configuration")
 @click.option("--section", help="Show specific section")
+@click.option("--status", is_flag=True, help="Show configuration status")
 @click.pass_obj
-def config(ctx: DraftyContext, all: bool, section: Optional[str]):
+def config(ctx: DraftyContext, all: bool, section: Optional[str], status: bool):
     """View and manage configuration."""
+    if status:
+        # Show environment configuration status
+        from drafty.core.settings import settings
+        settings.print_status()
+        return
+    
     if not ctx.config:
         console.print("[red]No configuration loaded[/red]")
+        console.print("[yellow]Tip: Use --status to check environment configuration[/yellow]")
         return
 
     if all:
