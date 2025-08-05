@@ -130,9 +130,13 @@ class ResearchService:
         # Initialize Data4SEO if credentials available
         try:
             self.data4seo = Data4SEOClient()
-        except ValueError:
+            print("Data4SEO client initialized successfully")
+        except ValueError as e:
             self.data4seo = None
-            print("Data4SEO credentials not found - using fallback search")
+            print(f"Data4SEO not available: {e}")
+        except Exception as e:
+            self.data4seo = None
+            print(f"Error initializing Data4SEO: {e}")
         
     async def analyze_topic(self, provider_name: Optional[str] = None) -> Dict[str, Any]:
         """Analyze the topic and generate research queries.
@@ -143,7 +147,12 @@ class ResearchService:
         # Get provider
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
-        provider = LLMProviderFactory.create(provider_name, provider_config.model_dump())
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
+        provider = LLMProviderFactory.create(provider_name, provider_config)
         
         # Build research prompt
         prompt = self.prompt_builder.build_research_prompt(
@@ -247,14 +256,20 @@ class ResearchService:
                         "relevance": 0.5
                     })
         else:
-            # Fallback: return mock results
-            for query in queries:
+            # Fallback: Generate conceptual sources without actual scraping
+            print("Data4SEO not configured - generating conceptual sources")
+            
+            # For demo purposes, we'll generate conceptual sources based on the queries
+            # In production, you'd want to use Data4SEO or another search API
+            for i, query in enumerate(queries[:max_sources], 1):
                 results.append({
                     "query": query,
-                    "url": f"https://example.com/article-about-{query.replace(' ', '-')}",
-                    "title": f"Article about {query}",
-                    "snippet": f"This is a relevant article about {query}...",
-                    "relevance": 0.85
+                    "url": f"https://example-source-{i}.com/article",
+                    "title": f"Article: {query.title()}",
+                    "snippet": f"This would be a comprehensive article about {query}. The content would cover key aspects, best practices, and expert insights.",
+                    "relevance": 0.9 - (i * 0.05),
+                    "domain": f"example-source-{i}.com",
+                    "note": "Demo source - actual URL scraping requires Data4SEO API or manual URL input"
                 })
         
         return results
@@ -317,7 +332,12 @@ class ResearchService:
         # Get provider
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
-        provider = LLMProviderFactory.create(provider_name, provider_config.model_dump())
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
+        provider = LLMProviderFactory.create(provider_name, provider_config)
         
         # Analyze each source
         analyzed = []
@@ -401,11 +421,14 @@ Respond in JSON format.
             print(f"Searching for sources using {len(queries)} queries...")
             results["search_results"] = await self.search_web(queries)
         
-        # Step 4: Scrape top sources
+        # Step 4: Scrape top sources (skip if using demo sources)
         urls = [r["url"] for r in results["search_results"][:max_sources] if r.get("url")]
-        if urls:
+        # Skip actual scraping for demo/example sources
+        if urls and not any("example-source" in url for url in urls):
             print(f"Scraping {len(urls)} sources...")
             results["scraped_sources"] = await self.scrape_sources(urls, use_javascript)
+        elif urls:
+            print("Skipping web scraping for demo sources")
         
         # Step 5: Analyze sources
         if results["scraped_sources"]:

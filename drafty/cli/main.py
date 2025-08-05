@@ -5,11 +5,25 @@ from pathlib import Path
 from typing import Optional
 
 import click
+from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 
 from drafty.cli.commands import draft, edit, export, link, new, outline, research
 from drafty.core.config import ArticleConfig
+
+# Load environment variables from .env file
+# Check multiple locations: current dir, parent dir, and drafty install dir
+from dotenv import find_dotenv
+env_file = find_dotenv(usecwd=True)
+if not env_file:
+    # Try the drafty installation directory
+    drafty_dir = Path(__file__).parent.parent.parent
+    env_file = drafty_dir / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
+else:
+    load_dotenv(env_file)
 
 console = Console()
 

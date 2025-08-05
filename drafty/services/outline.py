@@ -114,7 +114,12 @@ class OutlineService:
         # Get provider
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
-        provider = LLMProviderFactory.create(provider_name, provider_config.model_dump())
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
+        provider = LLMProviderFactory.create(provider_name, provider_config)
         
         # Prepare research context
         research_context = self._prepare_research_context(research_data)
@@ -177,14 +182,16 @@ class OutlineService:
         if research_data.get("serp_analysis"):
             serp = research_data["serp_analysis"]
             if serp.get("people_also_ask"):
-                questions = [q.get("question", "") for q in serp["people_also_ask"][:5]]
-                context_parts.append("People Also Ask: " + " | ".join(questions))
+                questions = [q.get("question", "") for q in serp["people_also_ask"][:5] if q.get("question")]
+                if questions:
+                    context_parts.append("People Also Ask: " + " | ".join(questions))
         
         # Add top sources
         if research_data.get("search_results"):
             sources = research_data["search_results"][:5]
-            titles = [s.get("title", "") for s in sources]
-            context_parts.append("Competitor Articles: " + " | ".join(titles))
+            titles = [s.get("title", "") for s in sources if s.get("title")]
+            if titles:
+                context_parts.append("Competitor Articles: " + " | ".join(titles))
         
         return "\n".join(context_parts)
     
