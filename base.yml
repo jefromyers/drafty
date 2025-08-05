@@ -1,0 +1,9 @@
+services:
+  browserless:
+    image: ghcr.io/browserless/chromium
+    environment:
+      CONCURRENT: 5
+      QUEUED: 10
+      TIMEOUT: 45000
+    ports:
+      - 3000:3000
