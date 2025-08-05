@@ -90,8 +90,11 @@ class OpenAIProvider(LLMProvider):
         request_params = {
             "model": self.model,
             "messages": openai_messages,
-            "temperature": kwargs.get("temperature", self.temperature),
         }
+        
+        # Only add temperature if explicitly provided
+        if "temperature" in kwargs:
+            request_params["temperature"] = kwargs["temperature"]
 
         if self.max_tokens:
             request_params["max_tokens"] = self.max_tokens
@@ -184,9 +187,12 @@ class OpenAIProvider(LLMProvider):
         request_params = {
             "model": self.model,
             "messages": openai_messages,
-            "temperature": kwargs.get("temperature", self.temperature),
             "stream": True,
         }
+        
+        # Only add temperature if explicitly provided
+        if "temperature" in kwargs:
+            request_params["temperature"] = kwargs["temperature"]
 
         if self.max_tokens:
             request_params["max_tokens"] = self.max_tokens

@@ -21,9 +21,11 @@ class GeminiProvider(LLMProvider):
 
         genai.configure(api_key=api_key)
         
-        # Default to gemini-1.5-flash if no model specified
+        # Default to GEMINI_MODEL env var or gemini-2.0-flash-exp
         if not self.model:
-            self.model = "gemini-1.5-flash"
+            # Try to get from environment first
+            default_model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+            self.model = default_model
         
         # Configure safety settings (can be customized via config)
         self.safety_settings = config.get("safety_settings", {
@@ -222,6 +224,7 @@ class GeminiProvider(LLMProvider):
         except Exception:
             # Return common models if API call fails
             return [
+                "gemini-2.0-flash-exp",
                 "gemini-1.5-flash",
                 "gemini-1.5-flash-8b",
                 "gemini-1.5-pro",

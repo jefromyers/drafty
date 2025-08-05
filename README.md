@@ -6,6 +6,7 @@ A powerful, modular CLI tool for AI-assisted article drafting with support for m
 
 - 🤖 **Multiple LLM Providers**: OpenAI (with structured outputs), Google Gemini, Anthropic Claude
 - 🔍 **Smart Web Scraping**: Using trafilatura and selectolax for fast, accurate content extraction
+- 📈 **Real SERP Data**: Data4SEO integration for Google search results, People Also Ask, and related searches
 - 🚀 **JavaScript Rendering**: Browserless integration for dynamic content
 - 📝 **Flexible Workflows**: Research → Outline → Draft → Edit → Link → Export
 - 🧠 **NLP Integration**: spaCy for entity recognition and text analysis
@@ -36,9 +37,14 @@ python -m spacy download en_core_web_sm
 Create a `.env` file:
 
 ```bash
+# LLM Providers
 OPENAI_API_KEY=your_openai_key
 GEMINI_API_KEY=your_gemini_key
 ANTHROPIC_API_KEY=your_anthropic_key
+
+# Data4SEO (for real SERP data)
+DATA4SEO_USERNAME=your_data4seo_username
+DATA4SEO_PASSWORD=your_data4seo_password
 ```
 
 ### 2. Create a new article
