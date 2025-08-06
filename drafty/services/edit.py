@@ -50,6 +50,11 @@ class EditService:
         # Get provider
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
         provider = LLMProviderFactory.create(provider_name, provider_config)
         
         # Build editing prompt
@@ -114,6 +119,11 @@ Return the improved content only."""
         
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
         provider = LLMProviderFactory.create(provider_name, provider_config)
         
         messages = [
@@ -154,6 +164,11 @@ Return the SEO-optimized content only."""
         
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
         provider = LLMProviderFactory.create(provider_name, provider_config)
         
         messages = [
@@ -190,6 +205,11 @@ Return the adjusted content only."""
         
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
         provider = LLMProviderFactory.create(provider_name, provider_config)
         
         messages = [
@@ -236,6 +256,11 @@ Return the adjusted content only."""
         
         provider_name = provider_name or self.config.llm.default
         provider_config = self.config.llm.providers.get(provider_name, {})
+        # Convert Pydantic model to dict if needed
+        if hasattr(provider_config, 'model_dump'):
+            provider_config = provider_config.model_dump()
+        elif not isinstance(provider_config, dict):
+            provider_config = {}
         provider = LLMProviderFactory.create(provider_name, provider_config)
         
         messages = [
@@ -466,7 +491,7 @@ class ContentAnalyzer:
         
         # Check word count against target
         word_count = len(content.split())
-        target_count = config.content.word_count.get("target", 1500)
+        target_count = config.content.word_count.target if hasattr(config.content.word_count, 'target') else 1500
         
         if abs(word_count - target_count) > target_count * 0.2:
             suggestions.append({

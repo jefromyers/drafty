@@ -121,9 +121,12 @@ def edit_article(
                 "target_tone": tone or config.content.tone
             })
         elif edit_type_lower == "length":
+            target = target_words if target_words else (
+                config.content.word_count.target if hasattr(config.content.word_count, 'target') else 1500
+            )
             edits.append({
                 "type": EditType.LENGTH,
-                "target_word_count": target_words or config.content.word_count.get("target", 1500)
+                "target_word_count": target
             })
         elif edit_type_lower == "clarity":
             edits.append({"type": EditType.CLARITY})

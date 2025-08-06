@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from rich.console import Console
 from rich.panel import Panel
 
-from drafty.cli.commands import draft, edit, export, link, new, outline, research
+from drafty.cli.commands import draft, edit, export, generate, link, new, outline, research
 from drafty.core.config import ArticleConfig
 
 # Load environment variables from .env file
@@ -61,6 +61,82 @@ def cli(ctx, verbose: bool, debug: bool, config: Optional[str]):
                 border_style="cyan",
             )
         )
+
+
+@cli.command()
+@click.argument("topic", required=False)
+@click.option("--config", "-c", type=click.Path(exists=True), help="Load config from JSON file")
+@click.option("--audience", "-a", help="Target audience")
+@click.option("--keywords", "-k", help="SEO keywords (comma-separated)")
+@click.option("--sections", "-s", type=int, help="Number of sections")
+@click.option("--word-count", "-w", type=int, help="Target word count")
+@click.option("--provider", "-p", help="LLM provider (openai/gemini)")
+@click.option("--style", help="Article style (guide/howto/listicle)")
+@click.option("--tone", help="Writing tone (professional/casual/friendly)")
+@click.option("--edit-types", help="Edit types (all/clarity/seo/readability)")
+@click.option("--export-formats", "-f", help="Export formats (markdown,html,json)")
+@click.option("--output-dir", "-o", type=click.Path(), help="Output directory")
+@click.option("--skip-research", is_flag=True, help="Skip research phase")
+@click.option("--skip-edit", is_flag=True, help="Skip editing phase")
+@click.option("--save-config", type=click.Path(), help="Save config to JSON file")
+@click.option("--dry-run", is_flag=True, help="Show what would be done without executing")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed progress")
+@click.pass_obj
+def generate(ctx: DraftyContext, topic: Optional[str], config: Optional[str], audience: Optional[str],
+             keywords: Optional[str], sections: Optional[int], word_count: Optional[int],
+             provider: Optional[str], style: Optional[str], tone: Optional[str],
+             edit_types: Optional[str], export_formats: Optional[str], output_dir: Optional[str],
+             skip_research: bool, skip_edit: bool, save_config: Optional[str],
+             dry_run: bool, verbose: bool):
+    """Generate a complete article with automated workflow.
+    
+    Examples:
+        drafty generate "My Topic" --audience "Developers"
+        drafty generate --config article.json
+        drafty generate --config base.json --topic "Override Topic"
+    """
+    from drafty.cli.commands.generate import generate_article
+    from pathlib import Path
+    
+    # Parse comma-separated values
+    keyword_list = keywords.split(",") if keywords else None
+    edit_type_list = edit_types.split(",") if edit_types else None
+    format_list = export_formats.split(",") if export_formats else None
+    
+    # Convert paths
+    config_path = Path(config) if config else None
+    save_path = Path(save_config) if save_config else None
+    output_path = Path(output_dir) if output_dir else None
+    
+    try:
+        results = generate_article(
+            topic=topic,
+            config_file=config_path,
+            audience=audience,
+            keywords=keyword_list,
+            sections=sections,
+            word_count=word_count,
+            provider=provider,
+            style=style,
+            tone=tone,
+            edit_types=edit_type_list,
+            export_formats=format_list,
+            output_dir=output_path,
+            skip_research=skip_research,
+            skip_edit=skip_edit,
+            save_config=save_path,
+            dry_run=dry_run,
+            verbose=verbose
+        )
+        
+        if not dry_run:
+            console.print("\n[green bold]✨ Article generated successfully![/green bold]")
+    except Exception as e:
+        console.print(f"[red]Generation failed: {e}[/red]")
+        if ctx.debug:
+            import traceback
+            console.print(traceback.format_exc())
+        raise
 
 
 @cli.command()
@@ -124,18 +200,47 @@ def draft(ctx: DraftyContext, model: Optional[str], section: Optional[str], json
 
 
 @cli.command()
-@click.option("--readability", type=int, help="Target readability score")
-@click.option("--tone", help="Adjust tone")
-@click.option("--length", help="Adjust length (shorter/longer)")
-@click.option("--seo", is_flag=True, help="Optimize for SEO")
+@click.argument("edit_types", nargs=-1)
+@click.option("--model", "-m", help="LLM model to use")
+@click.option("--target-grade", type=int, help="Target readability grade level")
+@click.option("--target-words", type=int, help="Target word count")
+@click.option("--keywords", help="Keywords for SEO (comma-separated)")
+@click.option("--tone", help="Target tone (professional, casual, friendly, etc.)")
+@click.option("--analyze", is_flag=True, help="Analyze content without editing")
+@click.option("--interactive", "-i", is_flag=True, help="Interactive editing mode")
 @click.pass_obj
-def edit(ctx: DraftyContext, readability: Optional[int], tone: Optional[str], length: Optional[str], seo: bool):
-    """Edit and refine draft content."""
-    from drafty.cli.commands.edit import refine_draft
+def edit(ctx: DraftyContext, edit_types: tuple, model: Optional[str], target_grade: Optional[int], 
+         target_words: Optional[int], keywords: Optional[str], tone: Optional[str], 
+         analyze: bool, interactive: bool):
+    """Edit and refine draft content.
+    
+    Examples:
+        drafty edit --analyze
+        drafty edit all
+        drafty edit readability seo
+        drafty edit tone --tone friendly
+    """
+    from drafty.cli.commands.edit import edit_article
 
-    console.print("[cyan]Refining draft...[/cyan]")
-    refined = refine_draft(ctx, readability, tone, length, seo)
-    console.print("[green]✓[/green] Draft refined successfully")
+    # Parse keywords if provided
+    keyword_list = keywords.split(",") if keywords else None
+    
+    # Convert edit_types tuple to list
+    edit_type_list = list(edit_types) if edit_types else []
+    
+    console.print("[cyan]Processing edits...[/cyan]")
+    result = edit_article(
+        ctx, 
+        edit_type_list,
+        model,
+        target_grade,
+        target_words,
+        keyword_list,
+        tone,
+        analyze,
+        interactive
+    )
+    console.print("[green]✓[/green] Edit complete")
 
 
 @cli.command()
