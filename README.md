@@ -80,6 +80,11 @@ drafty generate "Python Best Practices" \
   --sections 5 \
   --word-count 2000
 
+# Specify where to save final exports (workspace in temp)
+drafty generate "AI Ethics" \
+  --output-dir ./articles/ai-ethics/ \
+  --export-formats markdown,html
+
 # With smart linking enabled
 drafty generate "AI Writing Tools Guide" \
   --enhance-links \
@@ -92,6 +97,21 @@ drafty generate --config article-config.json
 
 # Dry run to preview what will happen
 drafty generate "Test Topic" --dry-run
+
+# Use a permanent workspace directory
+drafty generate "Machine Learning Guide" \
+  --workspace-dir ./workspaces/ml-guide/ \
+  --output-dir ./published/
+
+# Keep the temporary workspace for debugging
+drafty generate "Debug Article" \
+  --output-dir ./output/ \
+  --keep-workspace
+
+# Save workspace to specific location after generation
+drafty generate "Research Paper" \
+  --output-dir ./final/ \
+  --save-workspace ./saved-workspaces/
 ```
 
 ### 3. Or use the step-by-step workflow
@@ -109,10 +129,38 @@ drafty edit all
 drafty export -f markdown -f html
 ```
 
+## Workspace Management
+
+### Workspace vs Output Directory
+
+Drafty separates the **workspace** (where it stores research, drafts, and intermediate files) from the **output directory** (where final exports are saved):
+
+- **Workspace**: Contains the full article structure with research/, drafts/, exports/, and metadata
+- **Output Directory**: Receives only the final exported files (.md, .html, etc.)
+
+### Workspace Options
+
+```bash
+# Default: Temporary workspace, exports to current directory
+drafty generate "My Article"
+
+# Separate output directory (workspace still in temp)
+drafty generate "My Article" --output-dir ./published/
+
+# Permanent workspace directory
+drafty generate "My Article" --workspace-dir ./my-workspaces/article/
+
+# Keep temporary workspace after completion
+drafty generate "My Article" --keep-workspace
+
+# Copy workspace to permanent location after generation
+drafty generate "My Article" --save-workspace ./archived-workspaces/
+```
+
 ## Project Structure
 
 ```
-my-article/
+my-article/              # Workspace directory
 ├── article.json       # Configuration file
 ├── research/         
 │   ├── sources.json   # Collected sources
@@ -120,8 +168,12 @@ my-article/
 ├── drafts/           
 │   ├── current.md    # Working draft
 │   └── v*.md         # Version history
-├── exports/          # Final outputs
+├── exports/          # Final outputs (if no --output-dir specified)
 └── .drafty/          # Internal metadata
+
+output-directory/      # Separate output location (with --output-dir)
+├── article.md        # Final markdown export
+└── article.html      # Final HTML export
 ```
 
 ## Configuration
@@ -198,7 +250,9 @@ Create reusable configuration files for consistent article generation:
   "tone": "professional",
   "edit_types": ["all"],
   "export_formats": ["markdown", "html"],
-  "output_dir": "./exports"
+  "output_dir": "./exports",
+  "workspace_dir": "./workspaces/ai-tools",
+  "keep_workspace": false
 }
 ```
 
@@ -223,9 +277,10 @@ drafty generate "Article Topic" \
   --tone professional \
   --edit-types all \
   --export-formats markdown,html,json \
-  --output-dir ./my-articles \
-  --save-config my-config.json  # Save config for reuse
-  --verbose  # Show detailed progress
+  --output-dir ./my-articles \      # Final exports only
+  --workspace-dir ./workspaces \     # Full workspace location
+  --save-config my-config.json \     # Save config for reuse
+  --verbose                           # Show detailed progress
 ```
 
 ### Workflow Control
@@ -240,6 +295,30 @@ drafty generate "Test Article" --dry-run
 # Save configuration for later use
 drafty generate "My Article" --save-config saved-config.json
 ```
+
+### Generate Command Parameters
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `--output-dir` | Directory for final exports only (not workspace) | `--output-dir ./published/` |
+| `--workspace-dir` | Directory for full workspace (default: temp) | `--workspace-dir ./workspaces/` |
+| `--keep-workspace` | Preserve temporary workspace after completion | `--keep-workspace` |
+| `--save-workspace` | Copy temp workspace to location after completion | `--save-workspace ./archived/` |
+| `--config` | Load settings from JSON file | `--config article.json` |
+| `--audience` | Target audience for the content | `--audience "Developers"` |
+| `--keywords` | SEO keywords (comma-separated) | `--keywords "AI,ML,Python"` |
+| `--sections` | Number of article sections | `--sections 5` |
+| `--word-count` | Target word count | `--word-count 2000` |
+| `--provider` | LLM provider to use | `--provider gemini` |
+| `--style` | Article style (guide/howto/listicle) | `--style guide` |
+| `--tone` | Writing tone | `--tone professional` |
+| `--edit-types` | Edit modes to apply | `--edit-types clarity,seo` |
+| `--export-formats` | Output formats | `--export-formats md,html` |
+| `--skip-research` | Skip research phase | `--skip-research` |
+| `--skip-edit` | Skip editing phase | `--skip-edit` |
+| `--enhance-links` | Add smart outbound links | `--enhance-links` |
+| `--dry-run` | Preview without executing | `--dry-run` |
+| `--verbose` | Show detailed progress | `--verbose` |
 
 ## Advanced Features
 
@@ -295,7 +374,7 @@ drafty edit style  # Improve consistency and professional presentation
 
 | Command | Description |
 |---------|-------------|
-| `drafty generate` | **[NEW]** Generate complete article with one command |
+| `drafty generate` | Generate complete article with one command (supports workspace management) |
 | `drafty new <slug>` | Create new article workspace |
 | `drafty config status` | Check API keys and configuration |
 | `drafty research` | Gather and analyze sources |
@@ -381,6 +460,7 @@ MIT
 
 ### ✅ Completed Features
 - **Automated Workflow**: One-command article generation with `drafty generate`
+- **Workspace Management**: Separate workspace and output directories with flexible options
 - **Smart Linking System**: RAG + DBSCAN clustering for contextual outbound links
 - **Citation Management**: Automatic bibliography generation in multiple styles
 - **Semantic Embeddings**: Sentence-transformers integration for content similarity
@@ -393,6 +473,8 @@ MIT
 - Content analysis and SEO optimization
 - Multi-format export (Markdown, HTML, JSON, Text)
 - Automatic draft versioning
+- Temporary and permanent workspace options
+- Workspace preservation and archiving
 - Configuration management with .env support
 - Dry-run mode for testing workflows
 

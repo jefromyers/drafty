@@ -75,7 +75,10 @@ def cli(ctx, verbose: bool, debug: bool, config: Optional[str]):
 @click.option("--tone", help="Writing tone (professional/casual/friendly)")
 @click.option("--edit-types", help="Edit types (all/clarity/seo/readability)")
 @click.option("--export-formats", "-f", help="Export formats (markdown,html,json)")
-@click.option("--output-dir", "-o", type=click.Path(), help="Output directory")
+@click.option("--output-dir", "-o", type=click.Path(), help="Directory for final exports only")
+@click.option("--workspace-dir", type=click.Path(), help="Directory for workspace (default: temp)")
+@click.option("--keep-workspace", is_flag=True, help="Keep temp workspace after completion")
+@click.option("--save-workspace", type=click.Path(), help="Copy temp workspace to this location after completion")
 @click.option("--skip-research", is_flag=True, help="Skip research phase")
 @click.option("--skip-edit", is_flag=True, help="Skip editing phase")
 @click.option("--enhance-links", is_flag=True, help="Add smart outbound links")
@@ -91,6 +94,7 @@ def generate(ctx: DraftyContext, topic: Optional[str], config: Optional[str], au
              keywords: Optional[str], sections: Optional[int], word_count: Optional[int],
              provider: Optional[str], style: Optional[str], tone: Optional[str],
              edit_types: Optional[str], export_formats: Optional[str], output_dir: Optional[str],
+             workspace_dir: Optional[str], keep_workspace: bool, save_workspace: Optional[str],
              skip_research: bool, skip_edit: bool, enhance_links: bool, deep_crawl: bool,
              max_links: int, link_density: float, include_bibliography: bool,
              save_config: Optional[str], dry_run: bool, verbose: bool):
@@ -113,6 +117,8 @@ def generate(ctx: DraftyContext, topic: Optional[str], config: Optional[str], au
     config_path = Path(config) if config else None
     save_path = Path(save_config) if save_config else None
     output_path = Path(output_dir) if output_dir else None
+    workspace_path = Path(workspace_dir) if workspace_dir else None
+    save_workspace_path = Path(save_workspace) if save_workspace else None
     
     try:
         results = generate_article(
@@ -128,6 +134,9 @@ def generate(ctx: DraftyContext, topic: Optional[str], config: Optional[str], au
             edit_types=edit_type_list,
             export_formats=format_list,
             output_dir=output_path,
+            workspace_dir=workspace_path,
+            keep_workspace=keep_workspace,
+            save_workspace=save_workspace_path,
             skip_research=skip_research,
             skip_edit=skip_edit,
             enhance_links=enhance_links,

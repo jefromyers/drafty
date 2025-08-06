@@ -3,7 +3,9 @@
 import asyncio
 import json
 import os
+import shutil
 import tempfile
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -86,6 +88,7 @@ async def run_workflow(
     """Run the complete article generation workflow."""
     results = {
         "workspace": str(workspace.base_path),
+        "workspace_type": "temporary" if workspace.base_path.parts[-2].startswith("/tmp") or "Temp" in str(workspace.base_path) else "permanent",
         "research_sources": 0,
         "outline_sections": 0,
         "draft_words": 0,
@@ -378,8 +381,11 @@ def generate_article(
     edit_types: Optional[List[str]],
     export_formats: Optional[List[str]],
     output_dir: Optional[Path],
-    skip_research: bool,
-    skip_edit: bool,
+    workspace_dir: Optional[Path] = None,
+    keep_workspace: bool = False,
+    save_workspace: Optional[Path] = None,
+    skip_research: bool = False,
+    skip_edit: bool = False,
     enhance_links: bool = False,
     deep_crawl: bool = False,
     max_links: int = 10,
@@ -481,20 +487,23 @@ def generate_article(
         return {"dry_run": True, "config": config}
     
     # Create workspace
-    if use_temp:
+    temp_workspace = None
+    if workspace_dir:
+        # Use specified workspace directory
+        base_dir = Path(workspace_dir)
+        base_dir.mkdir(parents=True, exist_ok=True)
+        slug = f"{config['topic'][:30].replace(' ', '-').lower()}-{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        workspace_is_temp = False
+    else:
+        # Use temp directory for workspace
         temp_dir = tempfile.mkdtemp(prefix="drafty-")
+        temp_workspace = temp_dir  # Keep track for cleanup/saving
         base_dir = Path(temp_dir)
         slug = "article"
-    else:
-        # Use output_dir if specified, otherwise current directory
-        if config.get("output_dir"):
-            output_path = Path(config["output_dir"])
-            output_path.mkdir(parents=True, exist_ok=True)
-            base_dir = output_path
-            slug = "article"
-        else:
-            base_dir = Path.cwd()
-            slug = f"generated-{config['topic'][:30].replace(' ', '-').lower()}"
+        workspace_is_temp = True
+        
+        if verbose:
+            console.print(f"[cyan]Using temporary workspace: {temp_dir}[/cyan]")
     
     workspace = Workspace.create(
         base_dir=base_dir,
@@ -573,6 +582,27 @@ def generate_article(
                     console.print("\n[cyan]Exported files:[/cyan]")
                     for export_path in results["exports"]:
                         console.print(f"  • {export_path}")
+                
+                # Handle workspace management
+                if workspace_is_temp:
+                    if keep_workspace:
+                        console.print(f"\n[cyan]Workspace preserved at: {workspace.base_path}[/cyan]")
+                    elif save_workspace:
+                        # Copy workspace to specified location
+                        save_workspace.mkdir(parents=True, exist_ok=True)
+                        dest_path = save_workspace / workspace.base_path.name
+                        if dest_path.exists():
+                            shutil.rmtree(dest_path)
+                        shutil.copytree(workspace.base_path, dest_path)
+                        console.print(f"\n[cyan]Workspace saved to: {dest_path}[/cyan]")
+                        # Clean up temp if saved elsewhere
+                        if temp_workspace and not keep_workspace:
+                            shutil.rmtree(temp_workspace)
+                    else:
+                        console.print(f"\n[dim]Temporary workspace will be cleaned up[/dim]")
+                        # Note: temp cleanup happens automatically when Python exits
+                else:
+                    console.print(f"\n[cyan]Workspace location: {workspace.base_path}[/cyan]")
                 
                 return results
             else:
