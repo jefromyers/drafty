@@ -78,6 +78,11 @@ def cli(ctx, verbose: bool, debug: bool, config: Optional[str]):
 @click.option("--output-dir", "-o", type=click.Path(), help="Output directory")
 @click.option("--skip-research", is_flag=True, help="Skip research phase")
 @click.option("--skip-edit", is_flag=True, help="Skip editing phase")
+@click.option("--enhance-links", is_flag=True, help="Add smart outbound links")
+@click.option("--deep-crawl", is_flag=True, help="Deep crawl sources for better links")
+@click.option("--max-links", type=int, default=10, help="Maximum links to add")
+@click.option("--link-density", type=float, default=2.5, help="Links per 1000 words")
+@click.option("--include-bibliography", is_flag=True, help="Add bibliography section")
 @click.option("--save-config", type=click.Path(), help="Save config to JSON file")
 @click.option("--dry-run", is_flag=True, help="Show what would be done without executing")
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed progress")
@@ -86,8 +91,9 @@ def generate(ctx: DraftyContext, topic: Optional[str], config: Optional[str], au
              keywords: Optional[str], sections: Optional[int], word_count: Optional[int],
              provider: Optional[str], style: Optional[str], tone: Optional[str],
              edit_types: Optional[str], export_formats: Optional[str], output_dir: Optional[str],
-             skip_research: bool, skip_edit: bool, save_config: Optional[str],
-             dry_run: bool, verbose: bool):
+             skip_research: bool, skip_edit: bool, enhance_links: bool, deep_crawl: bool,
+             max_links: int, link_density: float, include_bibliography: bool,
+             save_config: Optional[str], dry_run: bool, verbose: bool):
     """Generate a complete article with automated workflow.
     
     Examples:
@@ -124,6 +130,11 @@ def generate(ctx: DraftyContext, topic: Optional[str], config: Optional[str], au
             output_dir=output_path,
             skip_research=skip_research,
             skip_edit=skip_edit,
+            enhance_links=enhance_links,
+            deep_crawl=deep_crawl,
+            max_links=max_links,
+            link_density=link_density,
+            include_bibliography=include_bibliography,
             save_config=save_path,
             dry_run=dry_run,
             verbose=verbose

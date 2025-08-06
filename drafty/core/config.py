@@ -159,7 +159,7 @@ class ScrapingConfig(BaseModel):
     timeout: int = Field(default=30, ge=1)
     max_retries: int = Field(default=3, ge=0)
     retry_delay: float = Field(default=1.0, ge=0)
-    user_agent: str = Field(default="Drafty/1.0 (AI Writing Assistant)")
+    user_agent: str = Field(default="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36")
     respect_robots_txt: bool = Field(default=True)
     max_concurrent: int = Field(default=5, ge=1)
     headers: Dict[str, str] = Field(default_factory=dict)

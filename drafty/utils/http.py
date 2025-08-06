@@ -10,8 +10,8 @@ from httpx import AsyncClient, Response
 class HTTPClient:
     """Async HTTP client wrapper with retry logic and connection pooling."""
 
-    # Realistic Mac Chrome user agent
-    DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    # Realistic Mac Chrome user agent (Chrome 138)
+    DEFAULT_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
 
     def __init__(
         self,

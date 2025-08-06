@@ -115,6 +115,8 @@ Guidelines:
 - Maintain professional tone
 - Keep technical terms but explain them
 
+IMPORTANT: Preserve all existing markdown links [text](url) - do not remove or modify any hyperlinks.
+
 Return the improved content only."""
         
         provider_name = provider_name or self.config.llm.default
@@ -160,6 +162,8 @@ Guidelines:
 - Maintain natural, readable flow
 - Don't keyword stuff
 
+IMPORTANT: Preserve all existing markdown links [text](url) - do not remove or modify any hyperlinks.
+
 Return the SEO-optimized content only."""
         
         provider_name = provider_name or self.config.llm.default
@@ -200,6 +204,8 @@ Guidelines for {target_tone} tone:
 {self._get_tone_guidelines(target_tone)}
 
 Maintain all facts and key information while adjusting the tone.
+
+IMPORTANT: Preserve all existing markdown links [text](url) - do not remove or modify any hyperlinks.
 
 Return the adjusted content only."""
         
@@ -251,6 +257,8 @@ Guidelines:
 - Maintain all key points and main message
 - Keep the structure and flow intact
 - Target: {target_word_count} words (±10%)
+
+IMPORTANT: Preserve all existing markdown links [text](url) - do not remove or modify any hyperlinks.
 
 Return the adjusted content only."""
         
@@ -369,7 +377,11 @@ Return the adjusted content only."""
 Editing requirements:
 {chr(10).join(edit_instructions)}
 
-Maintain the core message and structure while making improvements.
+IMPORTANT RULES:
+- Maintain the core message and structure while making improvements
+- PRESERVE ALL EXISTING LINKS - Do not remove or modify any markdown links [text](url)
+- Keep all hyperlinks intact and in their original positions
+- Maintain all citations and references
 
 Return the edited content only."""
         

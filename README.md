@@ -9,6 +9,10 @@ A powerful, modular CLI tool for AI-assisted article drafting with support for m
 - 📈 **Real SERP Data**: Data4SEO integration for Google search results, People Also Ask, and related searches
 - 🚀 **One-Command Generation**: Automated workflow from topic to finished article
 - 📝 **Complete Workflow**: Research → Outline → Draft → Edit → Export
+- 🔗 **Smart Linking System**: AI-powered outbound link suggestions with semantic relevance
+- 📚 **Citation Management**: Automatic citation generation (APA, MLA, Chicago, Harvard)
+- 🧠 **Semantic Search**: Embeddings-based content matching for contextual linking
+- 🕷️ **Deep Content Crawling**: Extract structured information from sources
 - ✏️ **Advanced Editing**: Multi-mode content refinement (readability, SEO, tone, length, clarity)
 - 📊 **Content Analysis**: Readability metrics, SEO analysis, and improvement suggestions
 - 🎨 **Template System**: Jinja2-based templates for customizable outputs
@@ -75,6 +79,13 @@ drafty generate "Python Best Practices" \
   --keywords "Python,coding standards,best practices" \
   --sections 5 \
   --word-count 2000
+
+# With smart linking enabled
+drafty generate "AI Writing Tools Guide" \
+  --enhance-links \
+  --max-links 15 \
+  --link-density 3.0 \
+  --include-bibliography
 
 # Using a JSON config file
 drafty generate --config article-config.json
@@ -370,6 +381,10 @@ MIT
 
 ### ✅ Completed Features
 - **Automated Workflow**: One-command article generation with `drafty generate`
+- **Smart Linking System**: RAG + DBSCAN clustering for contextual outbound links
+- **Citation Management**: Automatic bibliography generation in multiple styles
+- **Semantic Embeddings**: Sentence-transformers integration for content similarity
+- **Deep Content Crawling**: Structured extraction from research sources
 - **JSON Configuration**: Full workflow configuration via JSON files
 - Multiple LLM provider support (OpenAI, Gemini)
 - Data4SEO integration for real search data
@@ -383,10 +398,10 @@ MIT
 
 ### 🚧 In Progress
 - Anthropic Claude integration
-- spaCy NLP integration for entity recognition
-- Link management with NER
 - Interactive chat mode
 - Batch article processing
+- Advanced knowledge graph building
+- Real-time link validation
 
 ### 📋 Roadmap
 - [ ] Ollama integration for local models
