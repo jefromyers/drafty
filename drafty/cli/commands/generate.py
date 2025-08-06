@@ -19,6 +19,10 @@ from drafty.services.outline import OutlineService
 from drafty.services.draft import DraftService
 from drafty.services.edit import EditService, EditType
 from drafty.services.export import ExportService
+from drafty.services.linker import LinkSuggestionEngine
+from drafty.services.citations import CitationManager
+from drafty.services.embeddings import EmbeddingsService
+from drafty.services.crawler import ContentCrawler
 
 console = Console()
 
@@ -191,7 +195,100 @@ async def run_workflow(
         progress.update(task, completed=100, description=f"Draft failed: {e}")
         raise
     
-    # Step 4: Edit
+    # Step 4: Enhance with links (if enabled)
+    if config.get("enhance_links", False) and not config.get("skip_linking", False):
+        task = progress.add_task("Adding smart links...", total=100)
+        try:
+            # Initialize services
+            embeddings_service = EmbeddingsService()
+            crawler = ContentCrawler(embeddings_service)
+            link_engine = LinkSuggestionEngine(embeddings_service, crawler)
+            citation_manager = CitationManager()
+            
+            # Get current draft
+            current_draft = workspace.get_current_draft()
+            
+            # Get sources from research
+            sources_file = workspace.research_dir / "sources.json"
+            if sources_file.exists():
+                with open(sources_file) as f:
+                    sources = json.load(f)
+                
+                # Deep crawl top sources if enabled
+                if config.get("deep_crawl", False) and sources:
+                    progress.update(task, description="Deep crawling sources...")
+                    for source in sources[:5]:  # Crawl top 5 sources
+                        if source.get("url") and "example-source" not in source["url"]:
+                            try:
+                                crawl_result = await crawler.deep_crawl(
+                                    source["url"],
+                                    max_depth=1,
+                                    max_pages=3
+                                )
+                            except Exception as e:
+                                if verbose:
+                                    console.print(f"[yellow]Failed to crawl {source['url']}: {e}[/yellow]")
+                
+                # Suggest links
+                progress.update(task, description="Suggesting relevant links...")
+                if verbose:
+                    console.print(f"[cyan]Looking for links from {len(sources)} sources[/cyan]")
+                
+                link_suggestions = link_engine.suggest_links(
+                    current_draft,
+                    sources,
+                    max_links=config.get("max_links", 10),
+                    min_relevance=config.get("min_link_relevance", 0.6),
+                    prefer_authority=config.get("prefer_authority", True),
+                    link_density=config.get("link_density", 2.5)
+                )
+                
+                if verbose:
+                    console.print(f"[cyan]Found {len(link_suggestions)} link suggestions[/cyan]")
+                
+                # Add citations
+                for suggestion in link_suggestions:
+                    citation_manager.add_citation(
+                        url=suggestion["url"],
+                        title=suggestion["title"],
+                        citation_type="web"
+                    )
+                
+                # Enhance draft with links
+                enhanced_draft = link_engine.enhance_with_citations(
+                    current_draft,
+                    link_suggestions,
+                    citation_style=config.get("citation_style", "inline")
+                )
+                
+                # Add bibliography if using citations
+                if config.get("include_bibliography", False):
+                    bibliography = citation_manager.generate_bibliography(
+                        style=config.get("bibliography_style", "apa")
+                    )
+                    enhanced_draft += "\n\n" + bibliography
+                
+                # Save enhanced draft
+                workspace.save_draft(enhanced_draft, create_version=True)
+                
+                # Save link analysis
+                link_analysis = link_engine.analyze_link_distribution(link_suggestions)
+                analysis_file = workspace.drafts_dir / "link_analysis.json"
+                analysis_file.write_text(json.dumps(link_analysis, indent=2))
+                
+                results["links_added"] = len(link_suggestions)
+                
+                progress.update(task, completed=100)
+                if verbose:
+                    console.print(f"[green]✓[/green] Added {len(link_suggestions)} smart links")
+            else:
+                progress.update(task, completed=100, description="No sources for linking")
+        except Exception as e:
+            progress.update(task, completed=100, description=f"Linking failed: {e}")
+            if not config.get("continue_on_error", True):
+                raise
+    
+    # Step 5: Edit
     if not config.get("skip_edit", False):
         task = progress.add_task("Editing content...", total=100)
         try:
@@ -224,7 +321,7 @@ async def run_workflow(
             if not config.get("continue_on_error", True):
                 raise
     
-    # Step 5: Export
+    # Step 6: Export
     task = progress.add_task("Exporting files...", total=100)
     try:
         export_service = ExportService(article_config)
@@ -283,9 +380,14 @@ def generate_article(
     output_dir: Optional[Path],
     skip_research: bool,
     skip_edit: bool,
-    save_config: Optional[Path],
-    dry_run: bool,
-    verbose: bool,
+    enhance_links: bool = False,
+    deep_crawl: bool = False,
+    max_links: int = 10,
+    link_density: float = 2.5,
+    include_bibliography: bool = False,
+    save_config: Optional[Path] = None,
+    dry_run: bool = False,
+    verbose: bool = False,
     use_temp: bool = True
 ) -> Dict[str, Any]:
     """Generate a complete article with automated workflow."""
@@ -313,6 +415,11 @@ def generate_article(
         "output_dir": str(output_dir) if output_dir else None,
         "skip_research": skip_research,
         "skip_edit": skip_edit,
+        "enhance_links": enhance_links,
+        "deep_crawl": deep_crawl,
+        "max_links": max_links,
+        "link_density": link_density,
+        "include_bibliography": include_bibliography,
     }
     
     # Merge configurations
@@ -376,30 +483,62 @@ def generate_article(
     # Create workspace
     if use_temp:
         temp_dir = tempfile.mkdtemp(prefix="drafty-")
-        workspace_path = Path(temp_dir) / "article"
+        base_dir = Path(temp_dir)
+        slug = "article"
     else:
-        workspace_path = Path.cwd() / f"generated-{config['topic'][:30].replace(' ', '-').lower()}"
+        # Use output_dir if specified, otherwise current directory
+        if config.get("output_dir"):
+            output_path = Path(config["output_dir"])
+            output_path.mkdir(parents=True, exist_ok=True)
+            base_dir = output_path
+            slug = "article"
+        else:
+            base_dir = Path.cwd()
+            slug = f"generated-{config['topic'][:30].replace(' ', '-').lower()}"
     
     workspace = Workspace.create(
-        slug=workspace_path.name,
+        base_dir=base_dir,
+        slug=slug,
         topic=config["topic"],
-        audience=config["audience"],
-        base_path=workspace_path
+        audience=config["audience"]
     )
     
     # Update workspace config
     article_config = workspace.get_config()
     article_config.content.keywords = config.get("keywords", [])
-    article_config.content.word_count.target = config["word_count"]
-    article_config.content.tone = config["tone"]
-    article_config.content.style = config["style"]
+    article_config.content.word_count.min = max(config["word_count"] - 500, 100)
+    article_config.content.word_count.max = config["word_count"] + 500
+    
+    # Set tone (ContentConfig expects a list of ToneEnum)
+    if isinstance(config["tone"], str):
+        article_config.content.tone = [config["tone"]]
+    else:
+        article_config.content.tone = config["tone"]
+    
+    # Set style in the structure config (outline_style)
+    if config.get("style"):
+        article_config.structure.outline_style = config["style"]
     
     # Set provider
     if config.get("provider"):
         article_config.llm.default = config["provider"]
-        # Ensure provider config exists
+        # Ensure provider config exists with proper model
         if config["provider"] not in article_config.llm.providers:
-            article_config.llm.providers[config["provider"]] = {}
+            if config["provider"] == "gemini":
+                article_config.llm.providers["gemini"] = {
+                    "model": "gemini-2.0-flash-exp",
+                    "temperature": 0.7
+                }
+            elif config["provider"] == "openai":
+                article_config.llm.providers["openai"] = {
+                    "model": "gpt-4o-mini",
+                    "temperature": 0.7,
+                    "json_mode": True
+                }
+            else:
+                article_config.llm.providers[config["provider"]] = {
+                    "model": "default"
+                }
     
     workspace.save_config(article_config)
     

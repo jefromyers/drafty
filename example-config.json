@@ -27,5 +27,16 @@
       "AI content generation statistics",
       "GPT for content marketing"
     ]
+  },
+  "linking": {
+    "enhance_links": true,
+    "deep_crawl": false,
+    "max_links": 10,
+    "link_density": 2.5,
+    "min_link_relevance": 0.6,
+    "prefer_authority": true,
+    "citation_style": "inline",
+    "include_bibliography": false,
+    "bibliography_style": "apa"
   }
 }

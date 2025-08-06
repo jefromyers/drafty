@@ -42,7 +42,7 @@ class Data4SEOClient:
         num_results: int = 10,
         include_serp_features: bool = True
     ) -> Dict[str, Any]:
-        """Search Google using Data4SEO.
+        """Search Google using Data4SEO Live API.
         
         Args:
             keyword: Search query
@@ -52,37 +52,37 @@ class Data4SEOClient:
             include_serp_features: Include SERP features like PAA, featured snippets
         """
         async with HTTPClient() as client:
-            # Set up the task
+            # Use the LIVE endpoint for immediate results
             task_data = [{
                 "keyword": keyword,
                 "location_name": location,
                 "language_code": language,
-                "depth": num_results,
-                "include_serp_features": include_serp_features
+                "depth": num_results
             }]
             
-            # Post the task
+            # Use the live/regular endpoint for immediate results
             response = await client.post(
-                f"{self.base_url}/serp/google/organic/task_post",
+                f"{self.base_url}/serp/google/organic/live/regular",
                 json=task_data,
                 headers={"Authorization": self.auth_header}
             )
             
             result = response.json()
             
-            # Get task ID
-            if result.get("status_code") == 20000 and result.get("tasks"):
-                task_id = result["tasks"][0]["id"]
-                
-                # Get results (usually ready immediately for live search)
-                await asyncio.sleep(1)  # Small delay
-                
-                result_response = await client.get(
-                    f"{self.base_url}/serp/google/organic/task_get/advanced/{task_id}",
-                    headers={"Authorization": self.auth_header}
-                )
-                
-                return result_response.json()
+            # Debug logging
+            if result.get("status_code") == 20000:
+                if result.get("tasks") and len(result["tasks"]) > 0:
+                    task = result["tasks"][0]
+                    if task.get("result") and len(task["result"]) > 0:
+                        items = task["result"][0].get("items", [])
+                        print(f"    Data4SEO Live API returned {len(items)} items for '{keyword}'")
+                    else:
+                        print(f"    Data4SEO Live API returned no results for '{keyword}'")
+                else:
+                    print(f"    Data4SEO Live API task structure issue for '{keyword}'")
+            else:
+                print(f"Data4SEO Live API failed: {result.get('status_message', 'Unknown error')}")
+                print(f"Status code: {result.get('status_code')}")
             
             return result
     
@@ -207,11 +207,25 @@ class ResearchService:
                 current_section = "research_gaps"
             elif 'source' in line.lower():
                 current_section = "recommended_source_types"
-            elif 'quer' in line.lower():
+            elif 'quer' in line.lower() or 'search' in line.lower():
                 current_section = "search_queries"
-            elif line.startswith('-') or line.startswith('•'):
+            elif line.startswith('-') or line.startswith('•') or line.startswith('*'):
                 if current_section:
-                    result[current_section].append(line.lstrip('-•').strip())
+                    result[current_section].append(line.lstrip('-•*').strip())
+            elif line.startswith('"') and current_section == "search_queries":
+                # Handle quoted search queries
+                result[current_section].append(line.strip('"'))
+        
+        # If no search queries found, generate some based on the topic
+        if not result["search_queries"] and hasattr(self, 'config'):
+            topic = self.config.content.topic
+            result["search_queries"] = [
+                topic,
+                f"how to {topic.lower()}",
+                f"best practices {topic.lower()}",
+                f"{topic.lower()} guide",
+                f"{topic.lower()} tips"
+            ]
         
         return result
     
@@ -226,24 +240,35 @@ class ResearchService:
         if self.data4seo:
             # Use Data4SEO for real SERP data
             for query in queries[:5]:  # Limit to avoid too many API calls
+                # Clean up query - remove trailing commas, quotes, etc.
+                clean_query = query.strip().rstrip('",').strip('"\'')
+                print(f"Searching for: '{clean_query}'")
+                
                 try:
-                    serp_result = await self.data4seo.search_google(query, num_results=10)
+                    serp_result = await self.data4seo.search_google(clean_query, num_results=20)  # Get more results per query
                     
-                    if serp_result.get("tasks") and serp_result["tasks"][0].get("result"):
-                        items = serp_result["tasks"][0]["result"][0].get("items", [])
-                        
-                        for item in items:
-                            results.append({
-                                "query": query,
-                                "url": item.get("url"),
-                                "title": item.get("title"),
-                                "snippet": item.get("description"),
-                                "position": item.get("rank_group"),
-                                "domain": item.get("domain"),
-                                "breadcrumb": item.get("breadcrumb"),
-                                "is_featured": item.get("is_featured_snippet", False),
-                                "relevance": 0.9 - (item.get("rank_group", 1) * 0.05)  # Higher rank = more relevant
-                            })
+                    # Debug: Log the response structure
+                    if serp_result.get("status_code") != 20000:
+                        print(f"  API Error: {serp_result.get('status_message', 'Unknown')}")
+                    
+                    if serp_result.get("tasks") and len(serp_result["tasks"]) > 0:
+                        task = serp_result["tasks"][0]
+                        if task.get("result") and len(task["result"]) > 0:
+                            items = task["result"][0].get("items", [])
+                            print(f"  Found {len(items)} results for '{clean_query}'")
+                            
+                            for item in items:
+                                results.append({
+                                    "query": clean_query,
+                                    "url": item.get("url"),
+                                    "title": item.get("title"),
+                                    "snippet": item.get("description"),
+                                    "position": item.get("rank_group"),
+                                    "domain": item.get("domain"),
+                                    "breadcrumb": item.get("breadcrumb"),
+                                    "is_featured": item.get("is_featured_snippet", False),
+                                    "relevance": 0.9 - (item.get("rank_group", 1) * 0.05)  # Higher rank = more relevant
+                                })
                 
                 except Exception as e:
                     print(f"Data4SEO search failed for '{query}': {e}")
@@ -261,7 +286,7 @@ class ResearchService:
             
             # For demo purposes, we'll generate conceptual sources based on the queries
             # In production, you'd want to use Data4SEO or another search API
-            for i, query in enumerate(queries[:max_sources], 1):
+            for i, query in enumerate(queries[:10], 1):  # Default to 10 sources
                 results.append({
                     "query": query,
                     "url": f"https://example-source-{i}.com/article",
@@ -419,7 +444,13 @@ Respond in JSON format.
         queries = results["topic_analysis"].get("search_queries", [])[:5]
         if queries:
             print(f"Searching for sources using {len(queries)} queries...")
+            print(f"Queries: {queries}")  # Debug: show what queries we're using
             results["search_results"] = await self.search_web(queries)
+            print(f"Found {len(results.get('search_results', []))} search results")  # Debug
+        else:
+            print("No search queries generated from topic analysis")
+            # Fallback: use the topic itself as a query
+            results["search_results"] = await self.search_web([self.config.content.topic])
         
         # Step 4: Scrape top sources (skip if using demo sources)
         urls = [r["url"] for r in results["search_results"][:max_sources] if r.get("url")]
