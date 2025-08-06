@@ -7,13 +7,14 @@ A powerful, modular CLI tool for AI-assisted article drafting with support for m
 - 🤖 **Multiple LLM Providers**: OpenAI (with structured outputs & JSON mode), Google Gemini, Anthropic Claude (coming soon)
 - 🔍 **Smart Web Scraping**: Using trafilatura and selectolax for fast, accurate content extraction
 - 📈 **Real SERP Data**: Data4SEO integration for Google search results, People Also Ask, and related searches
-- 🚀 **JavaScript Rendering**: Browserless integration for dynamic content
+- 🚀 **One-Command Generation**: Automated workflow from topic to finished article
 - 📝 **Complete Workflow**: Research → Outline → Draft → Edit → Export
 - ✏️ **Advanced Editing**: Multi-mode content refinement (readability, SEO, tone, length, clarity)
 - 📊 **Content Analysis**: Readability metrics, SEO analysis, and improvement suggestions
 - 🎨 **Template System**: Jinja2-based templates for customizable outputs
 - 📁 **Version Control**: Automatic draft versioning and workspace management
-- 🔧 **Extensible Config**: Pydantic v2 schemas with extra fields support
+- 🔧 **JSON Config Support**: Define complete article specs in reusable JSON files
+- ⚡ **Batch Processing**: Generate multiple articles from config files
 
 ## Requirements
 
@@ -62,39 +63,39 @@ DATA4SEO_PASSWORD=your_data4seo_password
 BROWSERLESS_URL=http://localhost:3000
 ```
 
-### 2. Create a new article
+### 2. Generate an article with one command
 
 ```bash
-# Initialize a new article workspace
-drafty new my-article --topic "AI Writing Tools" --audience "Content creators"
+# Simplest usage - generate a complete article
+drafty generate "The Future of AI in Healthcare" --audience "Medical professionals"
 
-# Navigate to the workspace
-cd my-article/
+# With more options
+drafty generate "Python Best Practices" \
+  --audience "Python developers" \
+  --keywords "Python,coding standards,best practices" \
+  --sections 5 \
+  --word-count 2000
+
+# Using a JSON config file
+drafty generate --config article-config.json
+
+# Dry run to preview what will happen
+drafty generate "Test Topic" --dry-run
 ```
 
-### 3. Complete workflow
+### 3. Or use the step-by-step workflow
 
 ```bash
-# Check configuration status
-drafty config status
+# Create workspace
+drafty new my-article --topic "AI Writing Tools" --audience "Content creators"
+cd my-article/
 
-# Gather research sources
+# Run individual steps
 drafty research --max-sources 10
-
-# Generate outline (3-5 sections by default)
-drafty outline --sections 5 --style guide
-
-# Create draft
-drafty draft --model gpt-4o-mini
-
-# Edit and refine content
-drafty edit all --analyze  # Analyze and improve all aspects
-drafty edit readability --target-grade 10  # Adjust readability
-drafty edit seo --keywords "AI writing, content automation"
-drafty edit length --target-words 2000  # Adjust word count
-
-# Export final version
-drafty export --format markdown html json
+drafty outline --sections 5
+drafty draft
+drafty edit all
+drafty export -f markdown -f html
 ```
 
 ## Project Structure
@@ -159,6 +160,76 @@ Articles are configured via `article.json`:
 }
 ```
 
+## Automated Workflow (New!)
+
+The `generate` command runs the entire article creation pipeline automatically:
+
+### Basic Usage
+
+```bash
+# Generate a complete article with one command
+drafty generate "Your Article Topic" --audience "Target Audience"
+```
+
+### JSON Configuration
+
+Create reusable configuration files for consistent article generation:
+
+```json
+{
+  "topic": "Complete Guide to AI Writing Tools",
+  "audience": "Content creators and marketers",
+  "keywords": ["AI writing", "content automation", "GPT"],
+  "sections": 7,
+  "word_count": 2500,
+  "provider": "gemini",
+  "style": "guide",
+  "tone": "professional",
+  "edit_types": ["all"],
+  "export_formats": ["markdown", "html"],
+  "output_dir": "./exports"
+}
+```
+
+Use the config file:
+
+```bash
+drafty generate --config article-config.json
+
+# Override config values from CLI
+drafty generate --config base.json --topic "Different Topic" --sections 5
+```
+
+### Advanced Options
+
+```bash
+drafty generate "Article Topic" \
+  --keywords "keyword1,keyword2,keyword3" \
+  --sections 5 \
+  --word-count 2000 \
+  --provider gemini \
+  --style guide \
+  --tone professional \
+  --edit-types all \
+  --export-formats markdown,html,json \
+  --output-dir ./my-articles \
+  --save-config my-config.json  # Save config for reuse
+  --verbose  # Show detailed progress
+```
+
+### Workflow Control
+
+```bash
+# Skip specific steps
+drafty generate "Quick Article" --skip-research --skip-edit
+
+# Dry run to preview configuration
+drafty generate "Test Article" --dry-run
+
+# Save configuration for later use
+drafty generate "My Article" --save-config saved-config.json
+```
+
 ## Advanced Features
 
 ### JavaScript Rendering
@@ -213,6 +284,7 @@ drafty edit style  # Improve consistency and professional presentation
 
 | Command | Description |
 |---------|-------------|
+| `drafty generate` | **[NEW]** Generate complete article with one command |
 | `drafty new <slug>` | Create new article workspace |
 | `drafty config status` | Check API keys and configuration |
 | `drafty research` | Gather and analyze sources |
@@ -220,7 +292,8 @@ drafty edit style  # Improve consistency and professional presentation
 | `drafty draft` | Create content sections |
 | `drafty edit <type>` | Edit and refine content (see editing modes above) |
 | `drafty export` | Generate final outputs (markdown, HTML, JSON) |
-| `drafty status` | View workspace status and draft versions |
+| `drafty chat` | Interactive refinement mode (coming soon) |
+| `drafty nlp` | Text analysis tools (coming soon) |
 
 ## Development
 
@@ -296,18 +369,24 @@ MIT
 ## Current Status
 
 ### ✅ Completed Features
+- **Automated Workflow**: One-command article generation with `drafty generate`
+- **JSON Configuration**: Full workflow configuration via JSON files
 - Multiple LLM provider support (OpenAI, Gemini)
+- Data4SEO integration for real search data
 - Complete article generation pipeline
 - Advanced editing and refinement tools
 - Content analysis and SEO optimization
-- Multi-format export (Markdown, HTML, JSON)
+- Multi-format export (Markdown, HTML, JSON, Text)
 - Automatic draft versioning
 - Configuration management with .env support
+- Dry-run mode for testing workflows
 
 ### 🚧 In Progress
 - Anthropic Claude integration
 - spaCy NLP integration for entity recognition
 - Link management with NER
+- Interactive chat mode
+- Batch article processing
 
 ### 📋 Roadmap
 - [ ] Ollama integration for local models

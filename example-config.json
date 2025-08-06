@@ -1,0 +1,31 @@
+{
+  "topic": "The Complete Guide to AI Writing Tools in 2024",
+  "audience": "Content creators, marketers, and bloggers",
+  "keywords": [
+    "AI writing tools",
+    "content automation",
+    "GPT",
+    "AI content generation",
+    "SEO writing"
+  ],
+  "sections": 7,
+  "word_count": 2500,
+  "provider": "gemini",
+  "style": "guide",
+  "tone": "professional",
+  "edit_types": ["all"],
+  "export_formats": ["markdown", "html"],
+  "output_dir": "./exports",
+  "skip_research": false,
+  "skip_edit": false,
+  "max_sources": 10,
+  "options": {
+    "continue_on_error": true,
+    "use_serp": true,
+    "research_queries": [
+      "best AI writing tools 2024",
+      "AI content generation statistics",
+      "GPT for content marketing"
+    ]
+  }
+}
